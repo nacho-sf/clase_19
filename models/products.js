@@ -1,9 +1,10 @@
 const mongoose = require('mongoose');
-//mongoose.connect('mongodb://localhost:27017/mydb'); // Prueba para ver si existe conexión (ya no se necesita)
+// Prueba para ver si existe conexión (ya no se necesita)
+//mongoose.connect('mongodb://localhost:27017/mydb');
 
 const objectSchema = {
     id: { 
-        type: Number, 
+        type: Number,       //Tipado
         required: true,
         unique: true
     },
@@ -21,7 +22,7 @@ const objectSchema = {
     },
     image:{
         type: String,
-        validate: {
+        validate: {         //Validación
             validator: function(url){
                 return url.indexOf('.jpg') != -1;
             }, 
@@ -33,7 +34,7 @@ const objectSchema = {
 const productSchema = mongoose.Schema(objectSchema);
 // Crear el modelo --> Colección
 const Product = mongoose.model('Product', productSchema);
-
+//Exportar modelo
 module.exports = Product;
 
 
@@ -41,7 +42,7 @@ module.exports = Product;
 // Insertar un producto con Mongoose (a MongoDB):
 /*
 const p = new Product({
-    id: 1,
+    id: 937,
     title: "Tortilla",
     price: 1.80,
     description: "Tortilla jugosa del teatro",
