@@ -661,4 +661,140 @@ const getProducts = async (req, res) => {
 
     RELACIONAR DATOS CON MONGOOSE  -  POPULATE  --> (min 55:00 Mongo CRUD2)
 
--Modelo de datos normalizado en NoSQL
+-Modelo de datos normalizado en NoSQL (similar al relacional SQL)
+
+-Las colecciones de MOngoDB se van a poder relacionar fácilmente con el método de mongoose ".populate"
+
+    -> Un ejemplo podría ser una colección de videojuegos y otra de publishers (sega, sony, nintendo). A través de una query se podrían sacar, tanto los datos de la colección videojuegos, como otros de la colección publisher (ej->nombre)
+
+    ->El método .populate, en una query, trae los datos de la tabla relacionada.
+
+
+
+-Se crearía un proyecto nuevo de prueba solo para ver el funcionamiento del siguiente código. Contenido proyecto demo DEMO_MONGO:
+
+[/node_modules] [Game.js] [Publisher.js] [main.js] [package-lock.json] [package-json]
+
+
+            MODELOS:
+
+[Publisher.js] (modelo para colección publisher)
+
+const mongoose = require('mongoose');
+
+const objectSchema = {
+    companyName: String,
+    firstParty: Boolean,
+    website: String
+}
+
+//Crear esquema
+const publisherSchema = mongoose.Schema(objectSchema);
+//Crear modelo
+const Publisher = mongoose.model('Publisher', publisherSchema);
+
+module.exports = Publisher;
+
+
+
+[Game.js] (modelo para colección games)
+
+const mongoose = require('mongoose');
+
+const objectSchema = {
+    title: String,
+    publisher: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Publisher'
+    }
+}
+
+//Crear esquema
+const gameSchema = mongoose.Schema(objectSchema);
+//Crear modelo
+const Game = mongoose.model('Game', gameSchema);
+
+module.exports = Game;
+
+
+
+        INIT TEST
+
+[main.js] (fichero de prueba)
+
+const mongoose = require('mongoose');
+mongoose.connect('mongodb://localhost/mongo-games')
+    .then(() => console.log('Now connected to MongoDB'))
+    .catch(err => console.error('Something went wrong', err))
+
+const Game = require('./Game')
+const Publisher = require('./Publisher')
+
+async function createPublisher(companyName, firstParty, website) {
+    const publisher = new Publisher({
+        companyName,
+        firstParty,                         
+        website                                //Crea un objeto publisher
+    });
+
+    const result = await publisher.save();     //Lo guarda
+    console.log(result);                       //Para verlo por consola
+}
+
+async function createGame(title, publisher) {
+    const game = new Game({
+        title,
+        publisher                             //Crea un objeto publisher
+    });
+
+    const result = await game.save();         //Lo guarda
+    console.log(result);                      //Para verlo por consola
+}
+
+async function listGames() {
+    const games = await Game
+        .find()                                      //Trae la colección Game
+        .populate('publisher', 'companyName -_id')   //Como un INNER JOIN en SQL
+        .select('title publisher -_id');        //Dame solo title, publ. y quita _id
+    console.log(games);
+}
+
+//createPublisher('Nintendo', true, 'https://www.nintendo.com/');
+//createPublisher('Sony', true, 'https://www.sony.com/');
+//createPublisher('Sega', true, 'https://www.sega.com/');
+
+//createGame('Sonic the Hedgehog', '62ea5c8deb0cc4db1eb95366');
+//createGame('Donkey Kong', '62ea5c8deb0cc4db1eb95364');
+//createGame('Crash Bandicoot', '62ea5c8deb0cc4db1eb95365');
+
+//listGames();
+
+
+
+-Se descomentan los 3 createPublisher y ejecuto el archivo: node main.js. Se comprueba en Compass. Se busca en Compass->publishers el _id de los objetos creados y se copia/pega en el segundo parámetro de las funciones createGame del videojuego perteneciente a dicha compañía (sustituir el actual)
+
+-Se vuelven a comentar los 3 createPublisher y se descomentan los 3 createGame. Se ejecuta "node main.js". Esto habrá creado la colección Game.
+
+-Ahora vamos a ejecutar la query que relaciona cada juego con su publisher. Se vuelve a comentar los 3 createGame. Se descomenta "listGames()" y ejecutamos: node main.js.
+
+-Tendremos una query con un listado de juegos y con los nombres (en lugar de _id) de sus compañías correspondientes.
+
+
+
+-Pasos en código para insertar un nuevo juego:
+
+    -> Cómo hacer un insert de algo que tiene relación con otra colección
+
+    ->Necesitaría pasarle al esquema del modelo el título y el id de la compañía
+
+1º-Buscar el ID que tiene SONY en MongoDB:
+    -> Ej pseudocódigo: const publi = Publisher.find({company:Sony})
+
+2º-Crear el juego, añadiendo el ID:
+    -> Ej pseudocódigo: new Publisher({title:'Tomb Raider', publisher_id:publi._id})
+
+
+-Ejemplo bueno: https://kipalog.com/posts/Mongoose-One-to-Many-Relationship-Example
+
+
+-La clase continuaba haciendo los ejercicios del repo git sobre lo visto en clase (colección provider...)
