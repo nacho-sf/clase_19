@@ -153,6 +153,7 @@ https://studio3t.com/knowledge-base/articles/mongodb-aggregation-framework/
 
 
 
+
     EJEMPLO DE VALIDACIÓN EN EL ESQUEMA DE MONGODB (vídeo 1:25:00):
 
 const mongoose = require('mongoose');
@@ -211,9 +212,17 @@ Repasar...
 
 
 
+
+
+
     EJEMPLO DE RELACIÓN DE COLECCIONES (ALBERTO, min 1:27:00)
 
 Repasar...
+
+
+
+
+
 
 
 
@@ -450,4 +459,206 @@ p.save().then((data) => console.log(data))
     -> Se enciende el servidor Express. Si no da error, se puede empezar a trabajar.
 
 
--Como decíamos, la operación se hara en el controlador
+
+
+
+
+-Como decíamos, la operación se hará en el controlador:
+
+-En estos momentos no hay nada creado en nuestra fakestoreapi, por lo que habría que guardar algo. Entonces comenzaremos con el controlador "createProduct", y así se guardará algo en base de datos al ejecutar.
+
+
+
+-Antes teníamos el siguiente controlador:
+
+const createProduct = async (req, res) => {
+    console.log("Esto es el consol.log de lo que introducimos por postman",req.body); // Objeto recibido de producto nuevo
+    const newProduct = req.body; // {} nuevo producto a guardar
+try{
+    let response = await fetch('https://fakestoreapi.com/products', {
+        method: "POST",
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(newProduct)
+    })
+    let answer = await response.json(); // objeto de vuelta de la petición
+    console.log("Este es el console.log de lo que devuelve la api",answer);
+    res.status(201).json({"message":` Producto ${answer.title} guardado en el sistema con ID: ${answer.id}`});
+
+}catch(error){
+    console.log(`ERROR: ${error.stack}`);
+    res.status(400).json({"message":` Error guardando producto ${answer.title}`});
+}
+}
+
+-------------------
+
+---> Aquí intentábamos hacer una petición externa a la API de fakestoreapi, para crear el producto:
+try{
+    let response = await fetch('https://fakestoreapi.com/products', {
+        method: "POST",
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(newProduct)
+    })
+
+
+-Pues lo borramos:
+try{
+    let 
+
+-Y escribimos:
+try{
+    let product = new Product(req.body); // Crear el objeto producto con los nuevos datos del producto
+
+
+
+-Y en la siguiente línea:
+let answer = await response.json(); // objeto de vuelta de la petición
+
+-Se sustituye por:
+let answer = await product.save(); // Guardar objeto en MongoDB
+
+
+-Después habría que importar el modelo "products": const Product = require("../models/products");
+
+-En products.js, en la carpeta models, tenemos una declaración que usamos anteriormente para hacer una prueba de conexión(que no se va a hacer más). Esto tenemos que borrarlo o comentarlo porque para este ejercicio ya estamos abriendo conexión desde "dbMongo.js" (en utils) y crearía un conflicto si se hace en dos sitios simultáneamente.
+
+-Ahora vamos a hacer un POST desde Postman a la ruta que lleva a ese controlador: http://localhost:3000/api/products 
+
+-Vemos el modelo (estructura) del objeto a crear en "products.js" (carpeta models), lo copiamos al body de Postman y lo adaptamos como queramos:
+
+{
+    "id": 937,
+    "title": "Tortilla",
+    "price": 1.80,
+    "description": "Tortilla jugosa del teatro",
+    "image":"https://www.recetasderechupete.com/wp-content/uploads/2020/11/Tortilla-de-patatas-4-768x530.jpg"
+}
+
+
+-Si ejecutamos el POST en Postman, nos dará el mensaje de API_KEY no proveída. Esp es porque tenemos establecido un middleware para esa ruta. Entonces miramos la API_KEY e introducimos el parámetro en la URL:
+
+    -> http://localhost:3000/api/products?API_KEY=12354djd
+
+
+-Ahora nos habrá creado y guardado el producto. Comprobamos que se ha creado mirando el objeto en Compass.
+
+-Cuando creamos el objeto podemos crear 2 ID's. Uno lo crea automático (_id) y es el que usa para relacionar con otras colecciones (no se toca). El otro lo introducimos nosotros si queremos y para el fin que queramos.
+
+
+
+
+-Ahora vamos a hacer el getProducts:
+
+-Tenemos el siguiente código:
+
+
+const getProducts = async (req, res) => {
+    if (req.params.id) {
+        try {
+            let response = await fetch(`https://fakestoreapi.com/products/${req.params.id}`); //{}
+            let product = await response.json(); //{}
+            res.status(200).json(product);
+        }
+        catch (error) {
+            console.log(`ERROR: ${error.stack}`);
+            res.status(404).json({"message":"producto no encontrado"});
+        }
+    } else {
+        try {
+            let response = await fetch(`https://fakestoreapi.com/products`); // []
+            let products = await response.json(); // []
+            res.status(200).json( {products});
+        }
+        catch (error) {
+            console.log(`ERROR: ${error.stack}`);
+            res.status(404).json( {products});
+        }
+    }
+}
+
+
+-Esta línea:
+try {
+    let response = await fetch(`https://fakestoreapi.com/products/${req.params.id}`); //{}
+
+
+-La borramos:
+try {
+    let response = 
+
+
+-Y queremos hacer un "find" con mongoose:
+try {
+    let product = await Product.find({id:req.params.id},'title price id -_id');
+
+
+
+-Con el 2º "try" hacemos lo mismo, pero con el método de mongoose de findAll. Entonces el código completo modificado de getProducts queda así:
+
+
+const getProducts = async (req, res) => {
+    if (req.params.id) {  // FIND BY ID
+        try {
+            // Se filtra por lo que se quiere, y por lo que se quiere quitar
+            let product =  await Product.find({id:req.params.id},'title price id -_id'); 
+            res.status(200).json(product);
+        }
+        catch (error) {
+            console.log(`ERROR: ${error.stack}`);
+            res.status(404).json({"message":"producto no encontrado"});
+        }
+    } else { // FIND ALL
+        try {
+            // Se filtra por lo que se quiere, y por lo que se quiere quitar
+            let products = await Product.find({}).sort({'id':'desc'}); 
+            res.status(200).json( {products});
+        }
+        catch (error) {
+            console.log(`ERROR: ${error.stack}`);
+            res.status(404).json( {products});
+        }
+    }
+}
+
+
+-Ya se podría probar. La ruta para buscar productos sería:
+    -> [GET] http://localhost:3000/api/products
+    -> [GET] http://localhost:3000/api/products/1 (búsqueda por id)
+
+
+-Para filtrar campos devueltos, se coloca un segundo parámetro al método .find de mongoose. Ej 2º "try" del getProducts:
+
+    -> let products = await Product.find({}).sort({'id':'desc'});
+
+    Por:
+
+    -> let products = await Product.find({}, 'title price id -_id').sort({'id':'desc'});
+
+        -> Esto indica que devuelva solo "title", "price" y "id", y que excluya "_id"
+
+
+
+-Para ordenar los campos devueltos, mongoose tiene el método ".sort". Ordenaríamos la búsqueda de todos los productos. En el ejemplo están ordenados por id descendente.
+
+-El UPDATE y el DELETE nos lo mandan constuir nosotros mismos
+
+
+-La complicación general de esto es saber buscar y aplicar los métodos de mongoose (find, create...)
+
+
+
+
+
+
+
+
+
+    RELACIONAR DATOS CON MONGOOSE  -  POPULATE  --> (min 55:00 Mongo CRUD2)
+
+-Modelo de datos normalizado en NoSQL

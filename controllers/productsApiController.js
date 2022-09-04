@@ -1,28 +1,6 @@
 // Controlador - Lógica de negocio de la app
 const fetch =  require("node-fetch");
-const Product = require("../models/products");
-
-const getProducts = async (req, res) => {
-    if (req.params.id) {  // FIND BY ID
-        try {
-            let product =  await Product.find({id:req.params.id},'title price id -_id'); // Se filtra por lo que se quiere, y por lo que se quiere quitar
-            res.status(200).json(product);
-        }
-        catch (error) {
-            console.log(`ERROR: ${error.stack}`);
-            res.status(404).json({"message":"producto no encontrado"});
-        }
-    } else { // FIND ALL
-        try {
-            let products = await Product.find({},'title price id -_id').sort({'id':'desc'}); // Se filtra por lo que se quiere, y por lo que se quiere quitar
-            res.status(200).json( {products});
-        }
-        catch (error) {
-            console.log(`ERROR: ${error.stack}`);
-            res.status(404).json( {products});
-        }
-    }
-}
+const Product = require("../models/products"); //Importo el modelo BBDD
 
 
 const createProduct = async (req, res) => {
@@ -33,7 +11,7 @@ const createProduct = async (req, res) => {
     //para guardar 
     // en una BBDD SQL o MongoDB
 try{
-    let product = new Product(req.body); // Crear el objeto producto con los nuevos datos del producto
+    let product = new Product(req.body); // Crear el objeto Product con los nuevos datos del producto
     let answer = await product.save(); // Guardar objeto en MongoDB
     console.log("Este es el console.log de lo que devuelve la api",answer);
     res.status(201).json({"message":` Producto ${answer.title} guardado en el sistema con ID: ${answer.id}`});
@@ -45,17 +23,46 @@ try{
 }
 
 
+const getProducts = async (req, res) => {
+    if (req.params.id) {  // FIND BY ID
+        try {
+            // Se filtra por lo que se quiere, y por lo que se quiere quitar
+            let product =  await Product.find({id:req.params.id},'title price id -_id'); 
+            res.status(200).json(product);
+        }
+        catch (error) {
+            console.log(`ERROR: ${error.stack}`);
+            res.status(404).json({"message":"producto no encontrado"});
+        }
+    } else { // FIND ALL
+        try {
+            // Se filtra por lo que se quiere, y por lo que se quiere quitar
+            let products = await Product.find({},'title price id -_id').sort({'id':'desc'}); 
+            res.status(200).json( {products});
+        }
+        catch (error) {
+            console.log(`ERROR: ${error.stack}`);
+            res.status(404).json( {products});
+        }
+    }
+}
+
+
+
+
 const deleteProduct = async (req,res)=>{
     const msj ="Has enviado un DELETE para borrar product";
     console.log(msj);
     res.send(msj);
 }
 
+
+
 module.exports = {
-getProducts,
-createProduct,
-deleteProduct
-//editProduct,
+    createProduct,
+    getProducts,
+    deleteProduct
+    //editProduct,
 }
 
 
